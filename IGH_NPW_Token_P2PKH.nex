@@ -1,0 +1,10 @@
+pragma nexscript >= 1.0.2;
+    
+contract IGH_NPW_Token_P2PKH(string unused visible pixelName,bytes20 pkh) {
+    // Require pk to match stored pkh and signature to match
+    function RetrieveColorToken(pubkey pk, sig s) {
+        require(hash160(pk) == pkh);
+        require(checkSig(s, pk));
+    }
+}
+
