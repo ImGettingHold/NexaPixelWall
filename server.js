@@ -1,7 +1,9 @@
-import { ElectrumNetworkProvider, Contract, Network, SignatureTemplate } from '@nexscript/nexscript';
-import { ElectrumCluster, ElectrumTransport } from '@electrum-cash/network';
+import { ElectrumNetworkProvider, Contract, Network, SignatureTemplate, HashType } from '@nexscript/nexscript';
+//import { ElectrumCluster, ElectrumTransport } from '@electrum-cash/network';
 
-import artifact from './IGH_NPW_Token_P2PKH.json' with { type: "json" };
+import sseExpress from 'sse-express';
+
+import artifact from './IGH_NPW_Token_P2PKH_v0_2.json' with { type: "json" };
 import artifactMaster from './IGH_NPW_Master_P2PKH.json' with { type: "json" };
 import express from 'express';
 import fs from 'fs';
@@ -19,9 +21,9 @@ const blueToken = '';
 const yellowToken = '';
 const purpleToken = '';
 
-const nbPixel=64;
+const nbPixel=8;
 const nbX=8;
-const nbY=8;
+const nbY=1;
 
 const contractLst=[];
 
@@ -29,33 +31,43 @@ const contractLst=[];
 const network = libnexa.Networks.testnet;
 const wif = ""; 
 const privateKey = libnexa.PrivateKey.fromWIF(wif, network);
-const publicKey = '';
+const publicKey = libnexa.PublicKey.fromPrivateKey(privateKey);
 const addr = libnexa.PrivateKey(privateKey).toAddress();
 const address = addr.toString();
 
 
+//const electrum = new ElectrumCluster('IGH_NPW', '1.4.0.1', 1, 1,undefined,undefined, undefined, undefined,true);
+//electrum.addServer('127.0.0.1',30001,ElectrumTransport.TCP.Scheme,true);
 
-const electrum = new ElectrumCluster('IGH_NPW', '1.4.0.1', 1, 1,undefined,undefined, undefined, undefined,true);
-electrum.addServer('127.0.0.1',30001,ElectrumTransport.TCP.Scheme,true);
-try {
-  await electrum.ready();
-} catch (e) {
-  console.log('Failed to connect ', e);
-}
-const response = await electrum.request(
-    "blockchain.block.headers", 0, 1);
+//try {
+//  await electrum.ready();
+//} catch (e) {
+//  console.log('Failed to connect ', e);
+//}
+//const response = await electrum.request("blockchain.block.headers", 0, 1);
+//const provider = new ElectrumNetworkProvider(Network.TESTNET,electrum,true);
 
+// Initialise a network provider for network operations
+const provider = new ElectrumNetworkProvider('testnet');
 
-const provider = new ElectrumNetworkProvider(Network.TESTNET,electrum,true);
 const masterContract = new Contract(artifactMaster,[pkh],{provider});
 
 var app = express();
 
-app.set('view engine', 'ejs')
+app.set('view engine', 'ejs');
 app.use(express.static('public'));
 
-await InstanciateContracts();
 
+//let testHello = 'Hello';
+//const pixelUpdateNotifier = app.get('/pixelUpdates', sseExpress, function(req, res, next) {
+//  res.sse('connected', {
+//    HelloWorld:testHello
+//  });  
+//  next();
+//});
+
+
+await InstanciateContracts();
 
 
 app.get('/', function (req, res) {
@@ -73,6 +85,7 @@ let y=0;
   console.log('=== Loading Table ... ===');
   for(let i=0;i<nbPixel;i++){
     console.log(((i/nbPixel)*100)+'%');
+
     let currentContract={
       name:x+"x"+y,
       id:i,
@@ -81,7 +94,8 @@ let y=0;
       balance:0,
       tokens:[]
     };
-    let contract = new Contract(artifact,[currentContract.name,pkh],{provider});
+
+    let contract = new Contract(artifact,[pkh,currentContract.name],{provider});
     currentContract.address = contract.address;
     currentContract.balance = await contract.getBalance();
     let contractUTXOs = await contract.getUtxos();
@@ -119,7 +133,6 @@ let y=0;
             currentContract.color="purple";
           break;
           default:
-            // code block
         } 
       }
     }    
@@ -140,11 +153,7 @@ let y=0;
   console.log('100%');
   console.log('=== Finish ===');
 
-  var json = JSON.stringify(contractLst,(key,value) =>
-    typeof value ==='bigint' 
-      ? value.toString()
-      : value //return everything else unchanged)
-  );
+  var json = JSON.stringify(contractLst,(key,value) => typeof value ==='bigint' ? value.toString(): value);
 
   fs.writeFileSync('public/nexapixels.json',json);
 
@@ -159,41 +168,52 @@ app.get('/ValidateColors/', function (req, res) {
   return(res);
 })
 
+
+
+
 async function ValidateColor(pixelId, newColor){
   let colorTokenGroupId = "";
+
+  let pixelContract = new Contract(artifact,[pkh,contractLst[pixelId].name],{provider});
 
   switch(newColor) {
     case 'white':
       colorTokenGroupId =whiteToken;
+      pixelContract.color='white';
       break;
     case 'black':
       colorTokenGroupId =blackToken;
+      pixelContract.color='black';
       break;
     case 'grey':
       colorTokenGroupId =greyToken;
+      pixelContract.color='grey';
     break;
     case 'red':
       colorTokenGroupId =redToken;
+      pixelContract.color='red';
     break;
     case 'green':
       colorTokenGroupId =greenToken;
+      pixelContract.color='green';
     break;
     case 'blue':
       colorTokenGroupId =blueToken;
+      pixelContract.color='blue';
     break;
     case 'yellow':
       colorTokenGroupId =yellowToken;
+      pixelContract.color='yellow';
     break;
     case 'purple':
       colorTokenGroupId =purpleToken;
+      pixelContract.color='purple';
     break;
     default:
-      // code block
       break;
   } 
   
-  let contract = new Contract(artifact,[contractLst[pixelId].name, pkh],{provider});
-  const utxos = await contract.getUtxos();
+  const utxos = await pixelContract.getUtxos();
   const masterUtxos = await masterContract.getUtxos();
 
 
@@ -203,8 +223,8 @@ async function ValidateColor(pixelId, newColor){
   for (var item in utxos){
 
     if(utxos[item].token != undefined &&
-      utxos[item].token.groupId!=undefined &&
-      utxos[item].token.amount>0n ){
+      utxos[item].token.groupId !=undefined &&
+      utxos[item].token.amount == 1n ){
 
         let currentToken = {groupId:utxos[item].token.groupId,amount:utxos[item].token.amount};
         currentColorUtxo = utxos[item];
@@ -219,13 +239,15 @@ async function ValidateColor(pixelId, newColor){
 
   let newColorUtxo ='';
   tokenCount=0;
+
+  console.log('colorTokenGroupId :'+colorTokenGroupId);
   for (var item in masterUtxos){
-    if(masterUtxos[item].token != undefined && 
-      masterUtxos[item].token.groupId!=undefined &&
-      masterUtxos[item].token.groupId== colorTokenGroupId){
+    if(masterUtxos[item].token != undefined &&
+      masterUtxos[item].token.groupId == colorTokenGroupId){
+
         let currentToken = {groupId:masterUtxos[item].token.groupId,amount:masterUtxos[item].token.amount};
         newColorUtxo = masterUtxos[item];
-        console.log("pixel "+masterUtxos[item].groupId+" "+masterUtxos[item].amount+" "+masterUtxos[item].txid);
+        console.log("master new pixel "+masterUtxos[item].token.groupId+" "+masterUtxos[item].token.amount+" "+masterUtxos[item].txid);
         
         
         tokenCount++;
@@ -234,24 +256,51 @@ async function ValidateColor(pixelId, newColor){
     }
   }
 
-  if(currentColorUtxo.token.amount >0n){
+  if(currentColorUtxo.token != undefined){
 
-    console.log("1ere requete "+currentColorUtxo.token.groupId+" "+currentColorUtxo.token.amount+" "+currentColorUtxo.txid);
+    console.log("1st request : "+currentColorUtxo.token.groupId+" "+currentColorUtxo.token.amount);
+    console.log('master address: '+masterContract.address);
+    console.log('public key: '+publicKey);
+    console.log('private key: '+privateKey);
+    console.log('utxo count: '+utxos.length);
+    console.log('utxo : '+utxos);
+    console.log('private key'+new SignatureTemplate(privateKey.toBuffer()));
+
+    pixelContract.balance = await pixelContract.getBalance();
+    if(pixelContract.balance <= 1000n){
+      let refillTx= await masterContract.functions
+      .SendColorToken(publicKey.toString(), new SignatureTemplate(wif,HashType.SIGHASH_ALL))
+      .to(pixelContract.address,10000n)
+      .send();
+
+      console.log('RefillTx : '+refillTx);
+
+      //await 1s for transaction to propagate
+      sleep(1000);
+    }
     
-    let tx = await contract.functions
-    .RetrieveColorToken(publicKey, new SignatureTemplate(privateKey))
-    .from(utxos)
-    .to(masterContract.address,546n, currentColorUtxo.token).withHardcodedFee(1000n)
+    let tx = await pixelContract.functions
+    .RetrieveColorToken(publicKey.toString(), new SignatureTemplate(wif,HashType.SIGHASH_ALL))
+    .to(masterContract.address,546n, currentColorUtxo.token,currentColorUtxo.token)
     .send();
+
+    console.log('PixelTx : '+tx);
   }
 
   let tokenToAdd = {groupId:colorTokenGroupId,amount:1n};
   let masterTx = await masterContract.functions
-    .SendColorToken(publicKey,new SignatureTemplate(privateKey))
-    .from(masterUtxos)
-    .to(contract.address,546n)
-    .to(masterContract.address,1n, newColorUtxo)
+    .SendColorToken(publicKey.toString(), new SignatureTemplate(wif,HashType.SIGHASH_ALL))
+    .to(pixelContract.address,546n,tokenToAdd)
     .send();
+
+  console.log('masterTx : '+masterTx)
+
+  //save value in cache
+  contractLst[pixelId] = pixelContract;
+  var json = JSON.stringify(contractLst,(key,value) => typeof value ==='bigint' ? value.toString(): value);
+  fs.writeFileSync('public/nexapixels.json',json);
+  console.log('cache saved');
+
 }
 
 

@@ -46,6 +46,19 @@
 
 <script type="text/javascript" src="/js/jquery-3.7.1.min.js"></script>
 <script type="text/javascript">
+
+let eventSource = new EventSource('http://127.0.0.1:3000/pixelUpdates');
+eventSource.addEventListener('connected', (e) => {
+  if(e.data.pixelId != undefined){
+    let pixelToUpdate = document.getElementById(e.data.pixelId);
+    pixelToUpdate.className = '';
+    pixelToUpdate.classList.add("button");
+    pixelToUpdate.classList.add(color);
+    pixelToUpdate.classList.add("pixelSelected");
+  }
+});
+
+
 let zoomIndex=1;
             let selectedX=-1;
             let selectedY=-1;
@@ -99,7 +112,7 @@ let zoomIndex=1;
                 }});
 
 
-                const selectedPixel = document.getElementById("x"+selectedX+"y"+selectedY);
+                const selectedPixel = document.getElementById(selectedX+"x"+selectedY);
                 selectedPixel.className = '';
                 selectedPixel.classList.add("button");
                 selectedPixel.classList.add(selectedColor);
@@ -259,7 +272,7 @@ let zoomIndex=1;
                 if(!mouseMoved){
                     const pixelColors = document.getElementById("PixelColors");
                     pixelColors.innerHTML ="";
-                    pixelColors.appendChild(document.createTextNode("You selected following coordinates : x"+x+"y"+y));
+                    pixelColors.appendChild(document.createTextNode("You selected following coordinates : x :"+x+" y:"+y));
 
                     var pixels = document.getElementsByClassName("pixelSelected");
                     for(var i = pixels.length - 1; i >= 0; --i)
@@ -267,7 +280,7 @@ let zoomIndex=1;
                         pixels[i].classList.remove("pixelSelected");
                     }   
 
-                    const selectedPixel = document.getElementById("x"+x+"y"+y);
+                    const selectedPixel = document.getElementById(x+"x"+y);
                     selectedPixel.classList.add("pixelSelected");
 
                     var btnSelected = document.getElementsByClassName("btnSelected");
@@ -298,7 +311,7 @@ let zoomIndex=1;
                 let x=0;
                 let y=0;
                 let pixelId=0;
-                while (y < 8) {
+                while (y < 1) {
                     const row = document.createElement('div');
                     row.setAttribute('id', "y"+y);
                     row.classList.add("row");
@@ -306,7 +319,7 @@ let zoomIndex=1;
 
                     while (x < 8) {
                         const newButton = document.createElement('button');
-                        newButton.setAttribute('id', "x"+x+"y"+y);
+                        newButton.setAttribute('id', x+"x"+y);
                         newButton.classList.add("button");
                         newButton.setAttribute("onclick","clickPixel("+x+","+y+","+pixelId+");");
 

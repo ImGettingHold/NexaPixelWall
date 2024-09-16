@@ -1,0 +1,45 @@
+{
+  "contracts": [
+    {
+      "contractName": "IGH_NPW_Token_P2PKH_v0_2",
+      "constructorInputs": [
+        {
+          "name": "pkh",
+          "type": "bytes20",
+          "visible": false,
+          "unused": false
+        },
+        {
+          "name": "pixelName",
+          "type": "string",
+          "visible": true,
+          "unused": true
+        }
+      ],
+      "abi": [
+        {
+          "name": "RetrieveColorToken",
+          "inputs": [
+            {
+              "name": "pk",
+              "type": "pubkey"
+            },
+            {
+              "name": "s",
+              "type": "sig"
+            }
+          ]
+        }
+      ],
+      "dependencies": [],
+      "bytecode": "OP_FROMALTSTACK OP_DROP OP_FROMALTSTACK OP_OVER OP_HASH160 OP_EQUALVERIFY OP_CHECKSIGVERIFY",
+      "contracts": []
+    }
+  ],
+  "source": "pragma nexscript >= 1.0.2;\n    \ncontract IGH_NPW_Token_P2PKH_v0_2(bytes20 pkh, string unused visible pixelName) {\n    // Require pk to match stored pkh and signature to match\n    function RetrieveColorToken(pubkey pk, sig s) {\n        require(hash160(pk) == pkh);\n        require(checkSig(s, pk));\n    }\n}\n",
+  "compiler": {
+    "name": "nexc",
+    "version": "1.0.2"
+  },
+  "updatedAt": "2024-09-15T21:26:29.207Z"
+}

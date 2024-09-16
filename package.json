@@ -1,11 +1,11 @@
 {
-  "name": "test2",
+  "name": "nexapixelwall",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "ImGettingHold",
   "license": "ISC",
   "description": "",
   "dependencies": {
@@ -14,7 +14,9 @@
     "@nexscript/nexscript": "^1.0.2",
     "ejs": "^3.1.10",
     "electrum-cash": "^3.2.0",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "libnexa-js": "^1.0.2",
+    "sse-express": "^1.0.2"
   },
   "type": "module"
 }
