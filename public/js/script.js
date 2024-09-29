@@ -3,9 +3,11 @@ let zoomIndex=1;
             let selectedY=-1;
             let selectedColor="";
             let selectedPixelId = -1;
+            let eventSource;
 
             window.onload = function() {
               loadGrid();
+              listenUpdates();
             };
 
             let mouseDown = false;
@@ -57,6 +59,66 @@ let zoomIndex=1;
                 selectedPixel.classList.add(selectedColor);
                 selectedPixel.classList.add("pixelSelected");
             }
+
+            function listenUpdates() {
+              // subscribe to updates
+              eventSource = new EventSource('http://localhost:3000/updates');
+          
+              eventSource.addEventListener('pixelChanged', onMessage);
+              eventSource.addEventListener('connected', onConnected);
+              eventSource.onopen = onopen;
+              eventSource.onerror = onerror;
+              eventSource.onmessage = onmessage;
+          
+              //
+          
+              /**
+               * Receive and set user id
+               * @param event
+               */
+              function onConnected(event) {
+              }
+          
+              /**
+               * Receive message and display it
+               * @param event
+               */
+              function onMessage(event) {
+                let data = JSON.parse(event.data).pixelChanged;
+                let updatedX = data.;
+                let updatedY = paramArray[1];
+                let updatedColor = paramArray[2];
+          
+                UpdatePixel(updatedX,updatedY,updatedColor);
+              }
+          
+              /**
+               * Reconnect on error
+               */
+              function onerror() {
+                eventSource.close();
+          
+                // reconnect on error
+                setTimeout(listenUpdates, 2000);
+              }
+          
+              /**
+               * Yahoo!
+               */
+              function onopen() {
+                console.log('Connection is established');
+              }
+          
+            }
+
+            function UpdatePixel(updatedX,updatedY,updatedColor){
+              let pixelToUpdate = document.getElementById("x"+updatedX+"y"+updatedY);
+
+              pixelToUpdate.className = '';
+              pixelToUpdate.classList.add("button");
+              pixelToUpdate.classList.add(updatedColor);
+              pixelToUpdate.classList.add("pixelSelected");
+          }
 
 
             function clickColor(color){

@@ -47,27 +47,15 @@
 <script type="text/javascript" src="/js/jquery-3.7.1.min.js"></script>
 <script type="text/javascript">
 
-let eventSource = new EventSource('http://127.0.0.1:3000/pixelUpdates');
-eventSource.addEventListener('connected', (e) => {
-  if(e.data.pixelId != undefined){
-    let pixelToUpdate = document.getElementById(e.data.pixelId);
-    pixelToUpdate.className = '';
-    pixelToUpdate.classList.add("button");
-    pixelToUpdate.classList.add(color);
-    pixelToUpdate.classList.add("pixelSelected");
-  }
-});
-
 
 let zoomIndex=1;
             let selectedX=-1;
             let selectedY=-1;
             let selectedColor="";
             let selectedPixelId = -1;
+            let eventSource;
 
-            window.onload = function() {
-              loadGrid();
-            };
+
 
             let mouseDown = false;
             let mouseMoved = false;
@@ -105,6 +93,11 @@ let zoomIndex=1;
             slider.addEventListener('mouseup', stopDragging, false);
             slider.addEventListener('mouseleave', stopDragging, false);
 
+            listenUpdates();
+
+window.onload = function() {
+              loadGrid();
+            };
 
             function ValidateColor(){
                 $.ajax({url: 'ValidateColors?pixelId='+selectedPixelId+'&color='+selectedColor, success:function(res){
@@ -112,13 +105,72 @@ let zoomIndex=1;
                 }});
 
 
-                const selectedPixel = document.getElementById(selectedX+"x"+selectedY);
+                const selectedPixel = document.getElementById('x'+selectedX+'y'+selectedY);
                 selectedPixel.className = '';
                 selectedPixel.classList.add("button");
                 selectedPixel.classList.add(selectedColor);
                 selectedPixel.classList.add("pixelSelected");
             }
 
+            function listenUpdates() {
+              // subscribe to updates
+              eventSource = new EventSource('http://localhost:3000/updates');
+          
+              eventSource.addEventListener('pixelChanged', onMessage);
+              eventSource.addEventListener('connected', onConnected);
+              eventSource.onopen = onopen;
+              eventSource.onerror = onerror;
+              eventSource.onmessage = onmessage;
+          
+              //
+          
+              /**
+               * Receive and set user id
+               * @param event
+               */
+              function onConnected(event) {
+                console.log('User is connected');
+              }
+          
+              /**
+               * Receive message and display it
+               * @param event
+               */
+              function onMessage(event) {
+                let data = JSON.parse(event.data);
+
+                let updatedColor = JSON.parse(event.data).color;
+          
+                UpdatePixel(data.text,updatedColor);
+              }
+          
+              /**
+               * Reconnect on error
+               */
+              function onerror() {
+                console.log('Error. Closing sse connection');
+                eventSource.close();
+          
+                // reconnect on error
+                setTimeout(listenUpdates, 2000);
+              }
+          
+              /**
+               * Yahoo!
+               */
+              function onopen() {
+                console.log('Connection is established');
+              }
+          
+            }
+
+            function UpdatePixel(pixelName,updatedColor){
+              let pixelToUpdate = document.getElementById(pixelName);
+
+              pixelToUpdate.className = '';
+              pixelToUpdate.classList.add("button");
+              pixelToUpdate.classList.add(updatedColor);
+          }
 
             function clickColor(color){
 
@@ -280,7 +332,7 @@ let zoomIndex=1;
                         pixels[i].classList.remove("pixelSelected");
                     }   
 
-                    const selectedPixel = document.getElementById(x+"x"+y);
+                    const selectedPixel = document.getElementById('x'+x+'y'+y);
                     selectedPixel.classList.add("pixelSelected");
 
                     var btnSelected = document.getElementsByClassName("btnSelected");
@@ -311,15 +363,15 @@ let zoomIndex=1;
                 let x=0;
                 let y=0;
                 let pixelId=0;
-                while (y < 1) {
+                while (y < 128) {
                     const row = document.createElement('div');
                     row.setAttribute('id', "y"+y);
                     row.classList.add("row");
                     row.classList.add("zoom1");
 
-                    while (x < 8) {
+                    while (x < 128) {
                         const newButton = document.createElement('button');
-                        newButton.setAttribute('id', x+"x"+y);
+                        newButton.setAttribute('id', 'x'+x+'y'+y);
                         newButton.classList.add("button");
                         newButton.setAttribute("onclick","clickPixel("+x+","+y+","+pixelId+");");
 
